@@ -1,64 +1,63 @@
-import React, { useState } from 'react';
-import Statistics from './components/Statistics';
-import FeedbackOptions from './components/FeedbackOptions';
-import Section from './components/Section';
-import Notification from './components/Notification';
+import React, { useState, useRef } from 'react';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import FeedbackOptions from './Components/FeedbackOptions';
+import Statistics from './Components/Statistics';
+import Section from './Components/Section';
+import Notification from './Components/Notification';
+import './App.css';
 
-const App = () => {
-  const [good, setGood] = useState(0);
-  const [neutral, setNeutral] = useState(0);
-  const [bad, setBad] = useState(0);
+const AppContent = () => {
+  const { theme, toggleTheme } = useTheme();
+  const [feedback, setFeedback] = useState({ good: 0, neutral: 0, bad: 0 });
+  const statsRef = useRef(null);
 
-  const onLeaveFeedback = (option) => {
-    switch (option) {
-      case 'good':
-        setGood(prev => prev + 1);
-        break;
-      case 'neutral':
-        setNeutral(prev => prev + 1);
-        break;
-      case 'bad':
-        setBad(prev => prev + 1);
-        break;
-      default:
-        return;
+  const handleLeaveFeedback = (option) => {
+    setFeedback(prev => ({ ...prev, [option]: prev[option] + 1 }));
+    if (statsRef.current) {
+      statsRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  const countTotalFeedback = () => good + neutral + bad;
-
-  const countPositiveFeedbackPercentage = () => {
-    const total = countTotalFeedback();
-    return total > 0 ? Math.round((good / total) * 100) : 0;
-  };
-
-  const total = countTotalFeedback();
-  const options = ['good', 'neutral', 'bad'];
+  const { good, neutral, bad } = feedback;
+  const total = good + neutral + bad;
+  const positivePercentage = total > 0 ? Math.round((good / total) * 100) : 0;
 
   return (
-    <div className='container'>
+    <div className={`app-container ${theme}`}>
+      <button onClick={toggleTheme} className="theme-toggle-btn">
+        Switch to {theme === 'light' ? 'Dark' : 'Light'}
+      </button>
+
       <Section title="Please leave feedback">
         <FeedbackOptions 
-          options={options} 
-          onLeaveFeedback={onLeaveFeedback} 
+          options={Object.keys(feedback)} 
+          onLeaveFeedback={handleLeaveFeedback} 
         />
       </Section>
 
-      <Section title="Statistics">
-        {total > 0 ? (
-          <Statistics
-            good={good}
-            neutral={neutral}
-            bad={bad}
-            total={total}
-            positivePercentage={countPositiveFeedbackPercentage()}
-          />
-        ) : (
-          <Notification message="There is no feedback" />
-        )}
-      </Section>
+      <div ref={statsRef}>
+        <Section title="Statistics">
+          {total > 0 ? (
+            <Statistics 
+              good={good} 
+              neutral={neutral} 
+              bad={bad} 
+              total={total} 
+              positivePercentage={positivePercentage} 
+            />
+          ) : (
+            <Notification message="No feedback given" />
+          )}
+        </Section>
+      </div>
     </div>
   );
 };
+
+const App = () => (
+  <ThemeProvider>
+    <AppContent />
+  </ThemeProvider>
+);
 
 export default App;
